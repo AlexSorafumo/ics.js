@@ -43,7 +43,7 @@ var ics = function() {
          * @param  {string} begin       Beginning date of event
          * @param  {string} stop        Ending date of event
          */
-        'addEvent': function(subject, description, location, begin, stop, rrule) {
+        'addEvent': function(subject, description, location, begin, stop, rrule, attendees) {
             // I'm not in the mood to make these optional... So they are all required
             if (typeof subject === 'undefined' ||
                 typeof description === 'undefined' ||
@@ -154,8 +154,34 @@ var ics = function() {
 
                 if (rrule.byday && rrule.byday.length > 0) {
                   rruleString += ';BYDAY=' + rrule.byday.join(',');
-                }
+                } else if (rrule.bydayof && rrule.bydayof.length > 0) {
+                    rruleString += ';BYDAY=' + rrule.bydayof.join(',');
+                  }
+
               }
+            }
+
+            //Add attendee if defined
+            var attendeeString;
+            if(attendees){
+                for(var i = 0; i < attendees.length; i++) {
+                    var attendee = attendees[i]
+                    if(!attendeeString) attendeeString = 'ATTENDEE';
+                    else  attendeeString += SEPARATOR + 'ATTENDEE';
+                    if(attendee.cn) {
+                        attendeeString += ';CN=' + attendee.cn;
+                    }
+                    if(attendee.cutype) {
+                        attendeeString += ';CUTYPE=' + attendee.cutype;
+                    }
+                    if(attendee.role) {
+                        attendeeString += ';ROLE='+ attendee.role;
+                    }
+                    if(attendee.rsvp){
+                        attendeeString += ';RSVP=TRUE:mailto:' + attendee.rsvp;
+                    }
+
+                }
             }
 
             var stamp = new Date().toISOString();
@@ -173,9 +199,14 @@ var ics = function() {
                 'END:VEVENT'
             ];
 
+            if (attendeeString) {
+              calendarEvent.splice(8, 0, attendeeString);
+            }
+
             if (rruleString) {
               calendarEvent.splice(4, 0, rruleString);
             }
+
 
             calendarEvent = calendarEvent.join(SEPARATOR);
 
