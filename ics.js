@@ -10,6 +10,7 @@ var ics = function() {
     }
 
     var SEPARATOR = (navigator.appVersion.indexOf('Win') !== -1) ? '\r\n' : '\n';
+    var LINE_LENGTH_MAX = 75;
     var calendarEvents = [];
     var calendarStart = [
         'BEGIN:VCALENDAR',
@@ -161,7 +162,7 @@ var ics = function() {
               }
             }
 
-            //Add attendee if defined
+            // Add attendees if defined
             var attendeeString;
             if(attendees){
                 for(var i = 0; i < attendees.length; i++) {
@@ -183,13 +184,31 @@ var ics = function() {
 
                 }
             }
+            // Process multiline descriptions
+            if(description){
+                    // Make new lines, new line characters
+                description = description.replace(/\r\n/g, "\\n ");
+                description = description.replace(/\n/g, "\\n ");
+                    //Brake up description to make sure each line is less than 75 characters
+                var words = description.split(' ');
+                var final_description = '';
+                var len = 0;
+                for(var i = 0; i < words.length; i++){
+                    if(words[i].indexOf('\\n') >= 0) len = 0;
+                    if(len + words[i].length > LINE_LENGTH_MAX){
+                        final_description += ' \\n ' + words[i] + ' '; len = 0
+                    } else final_description += words[i] + ' ';
+                    len += words[i].length;
+                }
+                description = final_description;
+            }
 
             var stamp = new Date().toISOString();
 
             var calendarEvent = [
                 'BEGIN:VEVENT',
                 'CLASS:PUBLIC',
-                'DESCRIPTION:' + description.replace('\r\n', '\\n'),
+                'DESCRIPTION:' + description,
                 'DTSTART:' + start,
                 'DTEND:' + end,
                 'DTSTAMP:' + stamp.substring(0, stamp.length - 13).replace(/[-]/g, '') + '000000Z',
@@ -206,7 +225,6 @@ var ics = function() {
             if (rruleString) {
               calendarEvent.splice(4, 0, rruleString);
             }
-
 
             calendarEvent = calendarEvent.join(SEPARATOR);
 
